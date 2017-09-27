@@ -12,7 +12,7 @@ __version__ = '1.0'
 __maintainer__ = 'George Flanagin'
 __email__ = 'gflanagin@richmond.edu'
 __status__ = 'Working Prototype'
-__required_version__ = 3.4
+__required_version__ = 3.3
 
 
 # These are system packages, and there are no python environments
@@ -25,7 +25,7 @@ import random
 import string
 import sys
 
-if sys.version_info < (3,3):
+if sys.version_info < __required_version__:
     print('You need Python 3.3+ to run this program.')
     sys.exit(os.EX_SOFTWARE)
 
