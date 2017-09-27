@@ -12,7 +12,7 @@ __version__ = '1.0'
 __maintainer__ = 'George Flanagin'
 __email__ = 'gflanagin@richmond.edu'
 __status__ = 'Working Prototype'
-__required_version__ = 3.3
+__required_version__ = (3, 3)
 
 
 # These are system packages, and there are no python environments
