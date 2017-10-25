@@ -1,8 +1,16 @@
 # passwordgenerator
 This is a one file, password generator, that works on common distros of Linux, as well as Mac OS X
-It probably will work on Windows form a `git bash` console window, but I have not tried it. The
+It probably will work on Windows from a `git bash` console window, but I have not tried it. The
 limitation for Windows is the lack of a system-wide dictionary, but this program does have the
 ability to use any dictionary.
+
+The "bits" estimate is more correctly an estimate of the smallest list
+of passwords in which the generated password might appear. The source
+code will reveal all... For scaling/comprehension of large numbers:
+
+50 bits -> 10^15 ('quadrillion')
+60 bits -> 10^18 ('quintillion')
+70 bits -> 10^21 ('sextillion')
 
 The following is the current help, with an example output.
 
