@@ -8,9 +8,9 @@ The "bits" estimate is more correctly an estimate of the smallest list
 of passwords in which the generated password might appear. The source
 code will reveal all... For scaling/comprehension of large numbers:
 
-50 bits -> 10^15 ('quadrillion')
-60 bits -> 10^18 ('quintillion')
-70 bits -> 10^21 ('sextillion')
+- 50 bits -> 10^15 ('quadrillion')
+- 60 bits -> 10^18 ('quintillion')
+- 70 bits -> 10^21 ('sextillion')
 
 The following is the current help, with an example output.
 
