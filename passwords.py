@@ -27,6 +27,8 @@ import string
 import sys
 import time
 
+import stopwatch
+
 if sys.version_info < __required_version__:
     print('You need Python 3.5+ to run this program.')
     sys.exit(os.EX_SOFTWARE)
@@ -102,6 +104,8 @@ def password_gen(my_args:argparse.Namespace) -> list:
         (set(string.punctuation), math.log(len(string.punctuation),2))
         )
     sources_built = time.time()
+    timer = stopwatch.Stopwatch()
+    fmt = "{:<" + "{}".format(my_args.max_length) + "} | {:>6}"
 
     for i in range(0, my_args.number):
         password = ''
@@ -122,20 +126,23 @@ def password_gen(my_args:argparse.Namespace) -> list:
             if target_index == 0:
                 for _ in well_known_lists:
                     ops += 1
-                    if ammendment in _[0].keys(): 
+                    if ammendment in _[0]: 
                         entropic_bits += _[1]
                         break;
+                else:
+                    entropic_bits += word_bits    
             else:
                 entropic_bits += target[1]
             password += ammendment
     
             # Check to see if a password is too long.
-            if len(password) > my_args.max_length:
+            if len(password) >= my_args.max_length:
                 password, entropic_bits = '', 0
                 rejects += 1
 
         else:        
-            passwords.append((make_safe(password,my_args.alphabet), entropic_bits))
+            passwords.append((make_safe(password,my_args.alphabet), 
+                entropic_bits, timer.lap()-timer.start()))
 
 
     done_time = time.time()
@@ -237,9 +244,10 @@ if __name__ == "__main__":
         'Password'.ljust(my_args.max_length+1),
         'Len',
         'Bits'.rjust(6),
-        'Days'.rjust(10)
+        'Days'.rjust(10),
+        'CPU sec'.rjust(10)
         ]))
-    print("=================+=========+=========+=========+=========+======================")
+    print("=================+=========+=========+=========+=========+====================================")
     for i in range(0, len(passwords)):
         p = passwords[i]
         print(" :: ".join([
@@ -247,7 +255,8 @@ if __name__ == "__main__":
             p[0].ljust(my_args.max_length+1), 
             str(len(p[0])).rjust(3),
             str(round(p[1],1)).rjust(6), 
-            str(round(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400))).rjust(10)
+            str(round(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400))).rjust(10),
+            str(round(p[2],3)).rjust(10)
             ]))
 else:
     print('password_gen compiled')
