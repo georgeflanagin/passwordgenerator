@@ -244,19 +244,22 @@ if __name__ == "__main__":
         'Password'.ljust(my_args.max_length+1),
         'Len',
         'Bits'.rjust(6),
-        'Days'.rjust(10),
+        'Days'.rjust(9),
         'CPU sec'.rjust(10)
         ]))
-    print("=================+=========+=========+=========+=========+====================================")
+    print("="*100)
+    deduction = 0
     for i in range(0, len(passwords)):
         p = passwords[i]
+
         print(" :: ".join([
             str(i).rjust(4), 
             p[0].ljust(my_args.max_length+1), 
             str(len(p[0])).rjust(3),
             str(round(p[1],1)).rjust(6), 
-            str(round(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400))).rjust(10),
-            str(round(p[2],3)).rjust(10)
+            "{:.3e}".format(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400)),
+            str(round(p[2]-deduction,3)).rjust(10)
             ]))
+        deduction = p[2]
 else:
     print('password_gen compiled')
