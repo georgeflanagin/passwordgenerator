@@ -146,8 +146,7 @@ def password_gen(my_args:argparse.Namespace) -> list:
 
 
     done_time = time.time()
-    print('\n{} selection operations, with {} rejected passwords considered.\n'.format(
-            ops, rejects))
+    print('\n{} constructions, with {} branches abandoned.\n'.format(ops, rejects))
 
     print('{} seconds creating passwords.'.format(round(done_time - sources_built,2)))
 
