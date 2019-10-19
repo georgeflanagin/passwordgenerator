@@ -69,11 +69,10 @@ def decomp(s:str) -> None:
 
     print(s)
     for i in range(0, dimension):
-        for shredlen in range(1, dimension-i+1):
+        for shredlen in range(2, dimension-i+1):
             shred = s[i:i+shredlen]
-            print("shred <{}> {}:{}".format(shred, i, shredlen))
             if shred in words:
-                print("{} is a word".format(shred))
+                print("<{}> {}:{}".format(shred, i, i+shredlen))
                 for x in range(shredlen):
                     t[i, i+x] = 1
 
