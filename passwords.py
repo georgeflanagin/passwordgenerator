@@ -3,10 +3,14 @@
 """
 Quick and Dirty password generator.
 """
+import typing
+from   typing import *
+
+
 
 # Credits
 __author__ = 'George Flanagin'
-__copyright__ = 'Copyright 2017, University of Richmond'
+__copyright__ = 'Copyright 2019'
 __credits__ = None
 __version__ = '1.0'
 __maintainer__ = 'George Flanagin'
@@ -27,6 +31,9 @@ import string
 import sys
 import time
 
+import numpy
+
+from   gkfdecorators import show_exceptions_and_frames as trap
 import stopwatch
 
 if sys.version_info < __required_version__:
@@ -42,6 +49,36 @@ elif where_am_i == 'Darwin':
     dictionary_location = '/usr/share/dict/web2'
 else:
     dictionary_location = ''
+
+words = set()
+
+
+@trap
+def decomp(s:str) -> None:
+    """
+    Decompose a string into the largest dictionary fragments
+    based on the dictionary we have available. Note that the
+    data structure shown here is not particularly fast or 
+    efficient with space, but it is good for being printable
+    and being able to see what's going on.
+    """
+    dimension = len(s)
+
+    # Assume the worst.
+    t = numpy.zeros((dimension, dimension), dtype=numpy.uint8)
+
+    print(s)
+    for i in range(0, dimension):
+        for shredlen in range(1, dimension-i+1):
+            shred = s[i:i+shredlen]
+            print("shred <{}> {}:{}".format(shred, i, shredlen))
+            if shred in words:
+                print("{} is a word".format(shred))
+                for x in range(shredlen):
+                    t[i, i+x] = 1
+
+    print("  "+" ".join(list(s)))
+    print(t)       
 
 
 def make_safe(s:str,a:str) -> str:
@@ -65,6 +102,8 @@ def password_gen(my_args:argparse.Namespace) -> list:
     Generate passwords and estimate their unlikeliness (if that is even
     a word). 
     """
+    global words    
+
     start_time = time.time()
     ops = 0
     rejects = 0
@@ -140,7 +179,9 @@ def password_gen(my_args:argparse.Namespace) -> list:
                 password, entropic_bits = '', 0
                 rejects += 1
 
-        else:        
+        else:
+            decomp(password)        
+            sys.exit(0)
             passwords.append((make_safe(password,my_args.alphabet), 
                 entropic_bits, timer.lap()-timer.start()))
 
