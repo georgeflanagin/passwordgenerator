@@ -64,7 +64,7 @@ words = load_dict(dictionary_location) if dictionary_location else set()
 
 
 @trap
-def decomp(s:str) -> None:
+def decomp(s:str, debug:bool=False) -> None:
     """
     Decompose a string into the largest dictionary fragments
     based on the dictionary we have available. Note that the
@@ -86,7 +86,7 @@ def decomp(s:str) -> None:
                     t[i, i+x] += 1
 
     # print("  "+" ".join(list(s)))
-    # print(t)       
+    if debug: print(t)       
 
     row_sums = numpy.zeros(dimension, dtype=numpy.ubyte)
     for i in range(0, dimension):
@@ -207,7 +207,7 @@ def password_gen(my_args:argparse.Namespace) -> list:
 
         else:
             decomp_bits = 0.0
-            shreds = decomp(password)        
+            shreds = decomp(password, my_args.debug)        
             for shred in shreds:
                 lookup_bits = [ word_list[1] for word_list in well_known_lists 
                     if shred in word_list[0] ]
