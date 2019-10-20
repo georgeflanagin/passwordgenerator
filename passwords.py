@@ -77,7 +77,7 @@ def decomp(s:str) -> None:
     # Assume the worst.
     t = numpy.full((dimension, dimension), 0, dtype=numpy.ubyte)
 
-    print(s)
+    # print(s)
     for i in range(0, dimension):
         for shredlen in range(2, dimension-i+1):
             shred = s[i:i+shredlen]
@@ -85,18 +85,26 @@ def decomp(s:str) -> None:
                 for x in range(shredlen):
                     t[i, i+x] = 1
 
-    print("  "+" ".join(list(s)))
-    print(t)       
+    # print("  "+" ".join(list(s)))
+    # print(t)       
 
-    column_sums = numpy.zeros(dimension, dtype=numpy.ubyte)
     row_sums = numpy.zeros(dimension, dtype=numpy.ubyte)
     for i in range(0, dimension):
         row_sums[i] = numpy.sum(t[i,:])
-        column_sums[i] = 1 if numpy.sum(t[:,i]) else 0
 
-    print("Row sums: {}".format(tuple(row_sums)))
-    empty_columns = [ _ for _, v in enumerate(column_sums) if not v ]
-    print("Empty cols: {}".format(tuple(empty_columns)))
+    # print("Row sums: {}".format(tuple(row_sums)))
+    fragments = []
+    i = 0
+    while i < dimension:
+        run_len = row_sums[i]
+        if not run_len: 
+            fragments.append(s[i])
+            i+=1
+            continue
+        fragments.append(s[i:i+run_len])
+        i += run_len
+
+    return fragments
 
 
 def make_safe(s:str,a:str) -> str:
@@ -125,11 +133,11 @@ def password_gen(my_args:argparse.Namespace) -> list:
     start_time = time.time()
     ops = 0
     rejects = 0
-    well_known_lists = []
+    well_known_lists = [(dict.fromkeys(list(string.digits)),math.log2(10))]
     for listname in glob.glob(my_args.lists):
         with open(listname, 'r') as f:
             x = f.read().split()
-            well_known_lists.append((dict.fromkeys(x), math.log(len(x), 2)))
+            well_known_lists.append((dict.fromkeys(x), math.log2(len(x))))
 
     well_known_lists.sort(key=lambda z:z[1])
     well_known_lists_read = time.time()
@@ -139,7 +147,7 @@ def password_gen(my_args:argparse.Namespace) -> list:
     big_list_read = time.time()
 
     try:
-        word_bits = math.log(len(words),2)
+        word_bits = math.log2(len(words))
     except:
         word_bits = 0
 
@@ -150,14 +158,16 @@ def password_gen(my_args:argparse.Namespace) -> list:
 
     if len(words): sources.append((words, word_bits))
     sources.append(
-        (set(string.ascii_letters), math.log(len(string.ascii_letters),2))
+        (set(string.ascii_letters), math.log2(len(string.ascii_letters)))
         )
     sources.append(
-        (set(string.digits), math.log(len(string.digits),2))
+        (set(string.digits), math.log2(len(string.digits)))
         )
     sources.append(
-        (set(string.punctuation), math.log(len(string.punctuation),2))
+        (set(string.punctuation), math.log2(len(string.punctuation)))
         )
+    alphabet_bits = math.log2(len(my_args.alphabet))
+    alphaonly_bits = math.log2(26)
     sources_built = time.time()
     timer = stopwatch.Stopwatch()
     fmt = "{:<" + "{}".format(my_args.max_length) + "} | {:>6}"
@@ -196,16 +206,25 @@ def password_gen(my_args:argparse.Namespace) -> list:
                 rejects += 1
 
         else:
-            if my_args.debug: 
-                decomp(password)        
-                sys.exit(os.EX_OK)
+            decomp_bits = 0.0
+            shreds = decomp(password)        
+            for shred in shreds:
+                lookup_bits = [ word_list[1] for word_list in well_known_lists 
+                    if shred in word_list[0] ]
+                lookup_bits.append(len(shred)*alphaonly_bits)
+                lookup_bits.append(word_bits)
+                decomp_bits += min(lookup_bits)
+            
+            entropic_ratio = decomp_bits/entropic_bits
+            print("Entropic ratio {}".format(entropic_ratio))
+            if entropic_ratio < 1.0: entropic_bits *= entropic_ratio
 
             passwords.append((make_safe(password,my_args.alphabet), 
                 entropic_bits, timer.lap()-timer.start()))
 
 
     done_time = time.time()
-    print('\n{} branches, with {} branches in search tree pruned.\n'.format(ops, rejects))
+    print('\n{} branches, with {} branches pruned.\n'.format(ops, rejects))
 
     print('{} seconds creating passwords.'.format(round(done_time - sources_built,2)))
 
