@@ -64,7 +64,7 @@ words = load_dict(dictionary_location) if dictionary_location else set()
 
 
 @trap
-def decomp(s:str, debug:bool=False) -> None:
+def decomp(s:str, debug:bool=False) -> tuple:
     """
     Decompose a string into the largest dictionary fragments
     based on the dictionary we have available. Note that the
@@ -89,10 +89,12 @@ def decomp(s:str, debug:bool=False) -> None:
     if debug: print(t)       
 
     row_sums = numpy.zeros(dimension, dtype=numpy.ubyte)
+    column_sums = numpy.zeros(dimension, dtype=numpy.ubyte)
     for i in range(0, dimension):
         row_sums[i] = numpy.sum(t[i,:])
+        column_sums[i] = numpy.sum(t[:,i])
 
-    # print("Row sums: {}".format(tuple(row_sums)))
+    if debug: print("Column sums: {}".format(tuple(column_sums)))
     fragments = []
     i = 0
     while i < dimension:
@@ -104,7 +106,7 @@ def decomp(s:str, debug:bool=False) -> None:
         fragments.append(s[i:i+run_len])
         i += run_len
 
-    return fragments
+    return fragments, column_sums
 
 
 def make_safe(s:str,a:str) -> str:
@@ -207,7 +209,7 @@ def password_gen(my_args:argparse.Namespace) -> list:
 
         else:
             decomp_bits = 0.0
-            shreds = decomp(password, my_args.debug)        
+            shreds, column_sums = decomp(password, my_args.debug)        
             for shred in shreds:
                 lookup_bits = [ word_list[1] for word_list in well_known_lists 
                     if shred in word_list[0] ]
@@ -216,8 +218,12 @@ def password_gen(my_args:argparse.Namespace) -> list:
                 decomp_bits += min(lookup_bits)
             
             entropic_ratio = decomp_bits/entropic_bits
-            passwords.append((make_safe(password,my_args.alphabet), 
-                entropic_bits, timer.lap()-timer.start(), entropic_ratio))
+            passwords.append(
+                (make_safe(password,my_args.alphabet), 
+                entropic_bits, 
+                timer.lap()-timer.start(), 
+                entropic_ratio,
+                len(password)/sum(column_sums)))
 
 
     done_time = time.time()
@@ -330,9 +336,10 @@ def passwords_main():
         'Password'.ljust(my_args.max_length+1),
         'Len',
         'Bits'.rjust(6),
-        'Days'.rjust(9),
+        # 'Days'.rjust(9),
         'CPU sec'.rjust(10),
-        'Q-val'.rjust(6)
+        'Q1'.rjust(5),
+        'Q2'.rjust(5)
         ]))
     print("="*100)
     deduction = 0
@@ -344,9 +351,10 @@ def passwords_main():
             p[0].ljust(my_args.max_length+1), 
             str(len(p[0])).rjust(3),
             str(round(p[1],1)).rjust(6), 
-            "{:.3e}".format(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400)),
-            str(round(p[2]-deduction,3)).rjust(10),
-            str(round(p[-1],3)).ljust(5)
+            # "{:.3e}".format(math.pow(2,p[1])/(my_args.guesses*(10**9)*86400)),
+            str(round(p[2]-deduction,3)).ljust(10),
+            str(round(p[-2],3)).ljust(5),
+            str(round(p[-1],3)).ljust(6)
             ]))
         deduction = p[2]
 
