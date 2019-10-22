@@ -72,6 +72,7 @@ def decomp(s:str, debug:bool=False) -> tuple:
     and being able to see what's going on.
     """
     dimension = len(s)
+    s = s.lower()
 
     # Assume the worst.
     t = numpy.full((dimension, dimension), 0, dtype=numpy.ubyte)
