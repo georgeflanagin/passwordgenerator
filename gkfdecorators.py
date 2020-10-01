@@ -1,96 +1,142 @@
 # -*- coding: utf-8 -*-
 import typing
-from typing import *
+from   typing import *
 
 """
 These decorators are designed to handle hard errors in operation
 and provide a stack unwind and dump.
 
-from urdecorators import show_exceptions_and_frames as trap
-# from urdecorators import null_decorator as trap
+Usage:
 
-In production, we can swap the commented line for the one 
-preceding it. 
+from gkfdecorators import show_exceptions_and_frames as trap
+
+@trap
+def a_function_that_crashes():
+    pass
+
+When the decorator is invoked, it will create a file named 
+
+$PWD/YYYY-MM-DD/pidNNNNN
+
+Where:
+    $PWD -- is the current working directory of the process (not
+        the human user of who started the process).
+    YYYY-MM-DD -- the ordinary Gregorian date based on the system
+        clock.
+    pidNNNNN -- where NNNNN is the process identification number of
+        the process that created the dump.
 
 """
 
 # System imports
 import contextlib
+import datetime
 import inspect
 import os
 import sys
 import types
 
-# Canoe imports
-import gkflib as gkf
-
 # Credits
-__author__ = 'George Flanagin'
-__copyright__ = 'Copyright 2019, George Flanagin'
-__credits__ = 'Based on Github Gist 1148066 by diosmosis'
-__version__ = '0.1'
+__author__     = 'George Flanagin'
+__copyright__  = 'Copyright 2019, George Flanagin'
+__credits__    = 'Based on Github Gist 1148066 by diosmosis'
+__version__    = '1.1'
 __maintainer__ = 'George Flanagin'
-__email__ = 'me@georgeflanagin.com'
-__status__ = 'Production'
+__email__      = 'me+python@georgeflanagin.com'
+__status__     = 'Production'
+__license__    = 'MIT'
 
-def increment(s:str) -> str:
-    return s+'A'
-    
 
-def null_decorator(o:object) -> object:
+###
+# Part 1: a couple of helper functions.
+###
+
+def make_dir_or_die(dirname:str, mode:int=0o700) -> None:
     """
-    The big nothing.
+    Do our best to make the given directory (and any required
+    directories upstream). If we cannot, then die trying.
+
+    dirname -- name you would like to use.
+    mode    -- permissions on the directory.
+
+    returns -- None
     """
-    return o
+
+    try:
+        os.makedirs(dirname, mode)
+
+    except FileExistsError as e:
+        # It's already there.
+        pass
+
+    except PermissionError as e:
+        # This is bad.
+        tombstone(f"Permissions error creating/using {dirname}")
+        sys.exit(os.EX_NOPERM)
+
+    except NotADirectoryError as e:
+        tombstone("{dirname} exists, but it is not a directory")
+        sys.exit(os.EX_CANTCREAT)
+
+    except Exception as e:
+        tombstone(str(e))
+        sys.exit(os.EX_IOERR)
+
+    if (os.stat(dirname).st_mode & 0o777) >= mode:
+        return
+    else:
+        tombstone("{dirname} created. Permissions less than requested.")
 
 
-def show_exceptions(func:object) -> object:
+def now_as_string(s:str = "T") -> str:
     """
-    A **simple** decorator function to anticipate errors that might
-    be created by the compilation process.
+    Return full timestamp, fixed width for printing, parsing, and readability:
+
+    2007-02-07 @ 23:11:45
     """
-    def func_wrapper(*args, **kwargs):
-        error_message = ""
-        try:
-           return func(*args, **kwargs)
-
-        except Exception as e:
-            gkf.tombstone(error_message)
-            gkf.tombstone(gkf.type_and_text(e))
-            return None
-
-    return func_wrapper
+    return datetime.datetime.now().isoformat()[:21].replace("T",s)
 
 
+def tombstone(o:Any) -> str:
+    """
+    Write the representation of o to stderr, and also return it as
+    a courtesy.
+    """
+    rep = f"{o}\n"
+    sys.stderr.write(rep)
+    return rep
+
+
+###
+# Part 2: The main event.
+###
 
 def show_exceptions_and_frames(func:object) -> None:
     """
-    An amplified version of the show_exceptions decorator.
+    Produce a full dump of the symbol table.
     """
 
     def wrapper(*args, **kwds):
         __wrapper_marker_local__ = None
     
         try:
-            # If you uncomment the next line, you can see a flow trace.
-            # gkf.tombstone(gkf.fcn_signature(func.__name__))
             return func(*args, **kwds)
 
         except Exception as e:
-            print("{}".format(e))
+            tombstone(e)
             # Who am I?
-            pid = 'pid{}'.format(os.getpid())
+            pid = f'pid{os.getpid()}'
 
             # First order of business: create a dump file. The file will be under
-            # $CANOE_LOG with today's ISO date string as the dir name.
-            new_dir = os.path.join(os.getcwd(), gkf.now_as_string()[:10])
-            gkf.make_dir_or_die(new_dir)
+            # $PWD with today's ISO date string as the dir name.
+            new_dir = os.path.join(os.getcwd(), now_as_string()[:10])
+            make_dir_or_die(new_dir)
 
             # The file name will be the pid (possibly plus something like "A" if this
             # is the second time today this pid has failed).
             candidate_name = os.path.join(new_dir, pid)
             
-            gkf.tombstone("writing dump to file {}".format(candidate_name))
+            tombstone(f"writing dump to file {candidate_name}")
 
             with open(candidate_name, 'a') as f:
                 with contextlib.redirect_stdout(f):
@@ -98,13 +144,13 @@ def show_exceptions_and_frames(func:object) -> None:
                     try:
                         e_type, e_val, e_trace = sys.exc_info()
                     except Exception as e:
-                        gkf.tombstone(gkf.type_and_text(e))
+                        tombstone(e)
 
-                    print('Exception raised {}: "{}"'.format(e_type, e_val))
+                    print(f'Exception raised {e_type}: "{e_val}"')
                     
                     # iterate through the frames in reverse order so we print the
                     # most recent frame first
-                    for frame_info in inspect.getinnerframes(e_trace):
+                    for i, frame_info in enumerate(inspect.getinnerframes(e_trace)):
                         f_locals = frame_info[0].f_locals
                 
                         # if there's a local variable named __wrapper_marker_local__, we assume
@@ -112,15 +158,16 @@ def show_exceptions_and_frames(func:object) -> None:
                         # it. The problem happened before the dumping function was called.
                         if '__wrapper_marker_local__' in f_locals: continue
 
-                        # log the frame information
-                        print('\n**File <{}>, line {}, in function {}()\n    {}'.format(
+                        print(f'\nFRAME {i}: ' + '>'*i)
+                        # log the frame information. A little unreadable as an f-string.
+                        print('\n**File <{}>, line# {}, in function {}()\n    {}'.format(
                             frame_info[1], frame_info[2], frame_info[3], frame_info[4][0].lstrip()
                             ))
 
                         # log every local variable of the frame
-                        for k, v in f_locals.items():
+                        for k in sorted(f_locals.keys()):
                             try:
-                                print('    {} = {}'.format(k, v))
+                                print(f'    {k} = {f_locals[k]}')
                             except:
                                 pass
 
