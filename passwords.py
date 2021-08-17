@@ -55,7 +55,7 @@ def load_dict(s:str) -> set:
     timer = stopwatch.Stopwatch()
     start_time = timer.start()
     with open(s) as f:
-        w = set(f.read().split())
+        w = f.read().split()
     timer.stop()
     return w
 
@@ -169,13 +169,13 @@ def password_gen(my_args:argparse.Namespace) -> list:
 
     if len(words): sources.append((words, word_bits))
     sources.append(
-        (set(string.ascii_letters), math.log2(len(string.ascii_letters)))
+        (string.ascii_letters, math.log2(len(string.ascii_letters)))
         )
     sources.append(
-        (set(string.digits), math.log2(len(string.digits)))
+        (string.digits, math.log2(len(string.digits)))
         )
     sources.append(
-        (set(string.punctuation), math.log2(len(string.punctuation)))
+        (string.punctuation, math.log2(len(string.punctuation)))
         )
     alphabet_bits = math.log2(len(my_args.alphabet))
     alphaonly_bits = math.log2(26)
