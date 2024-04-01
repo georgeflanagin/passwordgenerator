@@ -142,6 +142,7 @@ class DeDict:
             # Shorten the token from the end.
             pos -= 1
                 
+        answer = {k:v for k,v in answer.items() if k}
         return tuple([sum(answer.values()), answer])
         
 
